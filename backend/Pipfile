@@ -11,10 +11,10 @@ alembic = "*"
 psycopg2-binary = "*"
 python-jose = {extras = ["cryptography"], version = "*"}
 python-multipart = "*"
-passlib = {extras = ["bcrypt"], version = "*"}
 python-dotenv = "*"
 slowapi = "*"
 pydantic = {extras = ["email"], version = "*"}
+passlib = {extras = ["argon2"], version = "*"}
 
 [dev-packages]
 pytest = "*"

@@ -38,3 +38,8 @@ class TransactionRead(TransactionBase):
 
 class UserWithTransactions(UserRead):
     transactions: List[TransactionRead] = []
+
+# Describes what /login returns
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
