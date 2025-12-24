@@ -15,6 +15,7 @@ python-dotenv = "*"
 slowapi = "*"
 pydantic = {extras = ["email"], version = "*"}
 passlib = {extras = ["argon2"], version = "*"}
+requests = "*"
 
 [dev-packages]
 pytest = "*"

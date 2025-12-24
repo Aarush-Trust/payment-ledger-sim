@@ -32,9 +32,13 @@ class TransactionRead(TransactionBase):
     status: str
     created_at: datetime
     audit_hash: Optional[str] = None
-
+    rate: float | None = None
+    converted_amount: float | None = None
+    risk_level: str | None = None
+    
     class Config:
         orm_mode = True
+
 
 class UserWithTransactions(UserRead):
     transactions: List[TransactionRead] = []

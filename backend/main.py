@@ -7,6 +7,7 @@ from database import Base, engine, SessionLocal
 from models import User, Transaction
 import schemas
 from conversion import convert
+from risk import assess_risk
 from security import (
     hash_password,
     verify_password,
@@ -118,6 +119,7 @@ def create_transaction(
         return existing
 
     rate, converted = convert(tx_in.amount, tx_in.source_currency, tx_in.target_currency)
+    risk = assess_risk(tx_in.amount, tx_in.source_currency, tx_in.target_currency)
     tx = Transaction(
         user_id=current_user.id,
         amount=tx_in.amount,
@@ -125,6 +127,7 @@ def create_transaction(
         target_currency=tx_in.target_currency.upper(),
         rate=rate,
         converted_amount=converted,
+        risk_level=risk,
         idempotency_key=tx_in.idempotency_key,
         status="COMPLETED",
         # audit_hash could later be a hash of fields

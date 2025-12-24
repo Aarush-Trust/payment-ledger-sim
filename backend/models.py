@@ -39,6 +39,9 @@ class Transaction(Base):
     amount = Column(Float, nullable=False)
     source_currency = Column(String, nullable=False)
     target_currency = Column(String, nullable=False)
+    rate = Column(Float, nullable=True)
+    converted_amount = Column(Float, nullable=True)
+    risk_level = Column(String, nullable=True)
 
     # For idempotency and reconciliation
     idempotency_key = Column(String, nullable=False)
