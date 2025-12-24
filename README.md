@@ -17,11 +17,11 @@ A small full-stack project that simulates cross-border payments with a simple le
 - Auth: OAuth2 password flow with JWT access tokens.
 
 ## Running locally
-'''
+```
 cd backend
 pipenv install
 pipenv shell
 uvicorn main:app --reload
-'''
+```
 
 Then open `http://127.0.0.1:8000/docs` for interactive API docs.
