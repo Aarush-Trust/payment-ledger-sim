@@ -13,6 +13,15 @@ RATES: dict[tuple[str, str], float] = {
 }
 
 
+class UnsupportedPairError(ValueError):
+    """Raised when a requested currency pair has no rate in RATES."""
+
+    def __init__(self, source: str, target: str):
+        self.source = source
+        self.target = target
+        super().__init__(f"Unsupported currency pair: {source} to {target}")
+
+
 def normalize_currency(code: str) -> str:
     return code.strip().upper()
 
@@ -20,7 +29,8 @@ def normalize_currency(code: str) -> str:
 def convert(amount: float, source: str, target: str) -> Tuple[float, float]:
     """
     Deterministic conversion using a fixed rate table.
-    Falls back to 1.0 if pair not found.
+    Raises UnsupportedPairError if the pair is not in the table. It never
+    falls back to a default rate.
     """
     s = normalize_currency(source)
     t = normalize_currency(target)
@@ -28,5 +38,7 @@ def convert(amount: float, source: str, target: str) -> Tuple[float, float]:
     if s == t:
         return 1.0, amount
 
-    rate = RATES.get((s, t), 1.0)
+    rate = RATES.get((s, t))
+    if rate is None:
+        raise UnsupportedPairError(s, t)
     return rate, amount * rate

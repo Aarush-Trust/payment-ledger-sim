@@ -1,12 +1,13 @@
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from collections.abc import Generator
 
 from database import Base, engine, SessionLocal
 from models import User, Transaction
 import schemas
-from conversion import convert
+from conversion import convert, UnsupportedPairError
 from risk import assess_risk
 from security import (
     hash_password,
@@ -50,6 +51,16 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+def find_existing_transaction(db: Session, user_id: int, idempotency_key: str) -> Transaction | None:
+    return (
+        db.query(Transaction)
+        .filter(
+            Transaction.user_id == user_id,
+            Transaction.idempotency_key == idempotency_key,
+        )
+        .first()
+    )
 
 # Simple health endpoint
 @app.get("/health")
@@ -106,19 +117,19 @@ def create_transaction(
     current_user: User = Depends(get_current_user),
 ):
     # Check for existing transaction with same idempotency key for this user
-    existing = (
-        db.query(Transaction)
-        .filter(
-            Transaction.user_id == current_user.id,
-            Transaction.idempotency_key == tx_in.idempotency_key,
-        )
-        .first()
-    )
+    existing = find_existing_transaction(db, current_user.id, tx_in.idempotency_key)
     if existing:
         # Idempotent behavior: return the already-created transaction
         return existing
 
-    rate, converted = convert(tx_in.amount, tx_in.source_currency, tx_in.target_currency)
+    try:
+        rate, converted = convert(tx_in.amount, tx_in.source_currency, tx_in.target_currency)
+    except UnsupportedPairError as exc:
+        # Same error body shape as every other error here: {"detail": "..."}
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
     risk = assess_risk(tx_in.amount, tx_in.source_currency, tx_in.target_currency)
     tx = Transaction(
         user_id=current_user.id,
@@ -133,7 +144,18 @@ def create_transaction(
         # audit_hash could later be a hash of fields
     )
     db.add(tx)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A concurrent request with the same (user_id, idempotency_key) committed between our
+        # lookup above and this insert, and the unique constraint rejected ours. Undo this
+        # session's failed write, then replay the original result instead of returning a 500.
+        db.rollback()
+        existing = find_existing_transaction(db, current_user.id, tx_in.idempotency_key)
+        if existing is None:
+            # Not the idempotency race (some other constraint failed), so don't hide it.
+            raise
+        return existing
     db.refresh(tx)
     return tx
 

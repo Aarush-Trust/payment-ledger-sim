@@ -1,0 +1,4 @@
+# Extra packages the tests need on top of the app's own dependencies (see ../Pipfile).
+# httpx is required by FastAPI's TestClient and is also used for the real-server concurrency test.
+pytest
+httpx
