@@ -1,6 +1,6 @@
 # Payment Ledger Simulator
 
-A small full-stack project that simulates cross-border payments with a simple ledger.
+A small backend project that simulates cross-border payments with a simple ledger.
 
 ## Features
 
